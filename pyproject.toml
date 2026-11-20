@@ -1,0 +1,65 @@
+[project]
+name = "usdscope"
+version = "0.1.0"
+description = "A USD stage drawn fast for editing: its meshes in their materials' colours, what moves in it and skinned characters at any time, read with pxr into plain arrays, and a viewport over Newton's viewer to look, pick, drag and play them."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = ["numpy>=2", "usd-core>=25.5"]
+
+[project.optional-dependencies]
+# The viewport: Newton's OpenGL viewer (pyglet, Dear ImGui). Reading needs none of it.
+view = ["newton>=1.8.0rc1", "pyglet>=2.1.6", "imgui-bundle>=1.92", "pyopengl>=3.1"]
+# Drawn by NVIDIA's RTX (ovrtx; NVIDIA's licence): `Viewport(renderer="rtx")`.
+rtx = ["ovrtx>=0.6", "ovstage>=0.3"]
+# A material's texture read for its average colour.
+textures = ["pillow>=11"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pillow>=11",
+    "usdscope[view]",
+    "ruff>=0.17.6",
+    "ty>=0.0.107",
+]
+
+[tool.uv.sources]
+# NVIDIA's renderer from NVIDIA's own index: PyPI's ovrtx is a stub that fetches it there as it
+# installs, so the lock would not hold the real wheels.
+ovrtx = { index = "nvidia" }
+
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+explicit = true
+
+[build-system]
+requires = ["uv_build>=0.9,<0.14"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --no-header --tb=short -p no:cacheprovider --import-mode=importlib"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+# PLW1514 (a text file opened without saying its encoding) is a preview rule: it alone.
+preview = true
+explicit-preview-rules = true
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "RUF", "ANN", "PLW1514"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests say what they check in their names; their helpers need no annotations.
+"tests/*" = ["ANN"]
+
+[tool.ty.analysis]
+# USD is C++ bindings without usable type information; so is Dear ImGui's.
+replace-imports-with-any = ["pxr.**", "imgui_bundle.**", "pyglet.**"]
+# NVIDIA's RTX packages come only with the `rtx` extra.
+allowed-unresolved-imports = ["ovstage", "ovrtx"]
